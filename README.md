@@ -126,4 +126,4 @@ Tests that require the PDFium native library are skipped automatically if it's n
 
 ## License
 
-MIT
+Apache-2.0

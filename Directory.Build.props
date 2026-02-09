@@ -8,7 +8,7 @@
 
     <Authors>PdfiumNet Contributors</Authors>
     <Company>PdfiumNet</Company>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
     <Version>0.1.0</Version>
   </PropertyGroup>
