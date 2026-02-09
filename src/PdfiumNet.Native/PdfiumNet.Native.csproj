@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>PdfiumNet.Native</PackageId>
+    <Description>Low-level P/Invoke bindings for Google PDFium</Description>
+  </PropertyGroup>
+</Project>

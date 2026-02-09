@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>PdfiumNet</PackageId>
+    <Description>High-level C# wrapper for Google PDFium - PDF creation, text extraction, drawing, and rendering</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PdfiumNet.Native\PdfiumNet.Native.csproj" />
+  </ItemGroup>
+</Project>

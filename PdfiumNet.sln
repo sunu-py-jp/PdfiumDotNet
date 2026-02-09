@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3E6A7001-B277-44EE-AEF3-88632F6AA4DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfiumNet.Native", "src\PdfiumNet.Native\PdfiumNet.Native.csproj", "{D17805E5-31B1-4C6D-B89A-4B724A15A3A0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfiumNet", "src\PdfiumNet\PdfiumNet.csproj", "{F0BFBBD2-6151-4039-AAE4-DB8696CDFDF7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B0E507C2-80B0-4C0B-BC51-64A93CDDD33C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfiumNet.Tests", "tests\PdfiumNet.Tests\PdfiumNet.Tests.csproj", "{5E37723F-428E-4FEA-9790-1907CBC7DCFB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{BFDC4A00-CAE2-46AE-8FB0-5105C397FD1E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfiumNet.Samples", "samples\PdfiumNet.Samples\PdfiumNet.Samples.csproj", "{70F2C554-87A1-41A4-9F0F-63B52E06EC56}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D17805E5-31B1-4C6D-B89A-4B724A15A3A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D17805E5-31B1-4C6D-B89A-4B724A15A3A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D17805E5-31B1-4C6D-B89A-4B724A15A3A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D17805E5-31B1-4C6D-B89A-4B724A15A3A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0BFBBD2-6151-4039-AAE4-DB8696CDFDF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0BFBBD2-6151-4039-AAE4-DB8696CDFDF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0BFBBD2-6151-4039-AAE4-DB8696CDFDF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0BFBBD2-6151-4039-AAE4-DB8696CDFDF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E37723F-428E-4FEA-9790-1907CBC7DCFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E37723F-428E-4FEA-9790-1907CBC7DCFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E37723F-428E-4FEA-9790-1907CBC7DCFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E37723F-428E-4FEA-9790-1907CBC7DCFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70F2C554-87A1-41A4-9F0F-63B52E06EC56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70F2C554-87A1-41A4-9F0F-63B52E06EC56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70F2C554-87A1-41A4-9F0F-63B52E06EC56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70F2C554-87A1-41A4-9F0F-63B52E06EC56}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D17805E5-31B1-4C6D-B89A-4B724A15A3A0} = {3E6A7001-B277-44EE-AEF3-88632F6AA4DD}
+		{F0BFBBD2-6151-4039-AAE4-DB8696CDFDF7} = {3E6A7001-B277-44EE-AEF3-88632F6AA4DD}
+		{5E37723F-428E-4FEA-9790-1907CBC7DCFB} = {B0E507C2-80B0-4C0B-BC51-64A93CDDD33C}
+		{70F2C554-87A1-41A4-9F0F-63B52E06EC56} = {BFDC4A00-CAE2-46AE-8FB0-5105C397FD1E}
+	EndGlobalSection
+EndGlobal
