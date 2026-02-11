@@ -66,6 +66,10 @@ public static partial class PdfiumNative
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool FPDFTextObj_GetFontSize(IntPtr textObject, out float fontSize);
 
+    [LibraryImport(LibraryName, EntryPoint = "FPDFTextObj_GetText")]
+    public static partial uint FPDFTextObj_GetText(
+        IntPtr textObject, IntPtr textPage, IntPtr buffer, uint length);
+
     // --- Font ---
 
     [LibraryImport(LibraryName, EntryPoint = "FPDFText_LoadFont")]
