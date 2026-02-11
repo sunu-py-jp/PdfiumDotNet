@@ -5,7 +5,7 @@ using PdfiumNet.Native.Types;
 namespace PdfiumNet.Forms;
 
 /// <summary>
-/// Provides read-only access to form field information in a PDF document.
+/// Provides access to form field information in a PDF document.
 /// Must be disposed after use to release the form fill environment.
 /// </summary>
 public sealed class PdfFormInfo : IDisposable
@@ -90,31 +90,64 @@ public sealed class PdfFormInfo : IDisposable
         return fields;
     }
 
+    /// <summary>
+    /// Sets the value of a text field by field name.
+    /// </summary>
+    /// <param name="fieldName">The name of the form field.</param>
+    /// <param name="value">The new value to set.</param>
+    /// <returns>True if the value was set successfully.</returns>
+    public bool SetFieldValue(string fieldName, string value)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_formHandle == IntPtr.Zero)
+            return false;
+
+        var pageCount = _document.PageCount;
+        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++)
+        {
+            var pageHandle = PdfiumNative.FPDF_LoadPage(_document.Handle, pageIndex);
+            if (pageHandle == IntPtr.Zero) continue;
+
+            try
+            {
+                var annotCount = PdfiumNative.FPDFPage_GetAnnotCount(pageHandle);
+                for (var i = 0; i < annotCount; i++)
+                {
+                    var annotHandle = PdfiumNative.FPDFPage_GetAnnot(pageHandle, i);
+                    if (annotHandle == IntPtr.Zero) continue;
+
+                    try
+                    {
+                        var subtype = PdfiumNative.FPDFAnnot_GetSubtype(annotHandle);
+                        if (subtype != 20) continue; // FPDF_ANNOT_WIDGET = 20
+
+                        var name = GetFormFieldString(annotHandle, true);
+                        if (!string.Equals(name, fieldName, StringComparison.Ordinal))
+                            continue;
+
+                        return PdfiumNative.FORM_SetFieldText(_formHandle, pageHandle, annotHandle, value);
+                    }
+                    finally
+                    {
+                        PdfiumNative.FPDFPage_CloseAnnot(annotHandle);
+                    }
+                }
+            }
+            finally
+            {
+                PdfiumNative.FPDF_ClosePage(pageHandle);
+            }
+        }
+
+        return false;
+    }
+
     private string GetFormFieldString(IntPtr annotHandle, bool isName)
     {
-        uint length;
-        if (isName)
-            length = PdfiumNative.FPDFAnnot_GetFormFieldName(_formHandle, annotHandle, IntPtr.Zero, 0);
-        else
-            length = PdfiumNative.FPDFAnnot_GetFormFieldValue(_formHandle, annotHandle, IntPtr.Zero, 0);
-
-        if (length <= 2)
-            return string.Empty;
-
-        var buffer = Marshal.AllocHGlobal((int)length);
-        try
-        {
-            if (isName)
-                PdfiumNative.FPDFAnnot_GetFormFieldName(_formHandle, annotHandle, buffer, length);
-            else
-                PdfiumNative.FPDFAnnot_GetFormFieldValue(_formHandle, annotHandle, buffer, length);
-
-            return Marshal.PtrToStringUni(buffer) ?? string.Empty;
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
+        return NativeStringHelper.ReadUtf16((buf, len) =>
+            isName
+                ? PdfiumNative.FPDFAnnot_GetFormFieldName(_formHandle, annotHandle, buf, len)
+                : PdfiumNative.FPDFAnnot_GetFormFieldValue(_formHandle, annotHandle, buf, len));
     }
 
     public void Dispose()

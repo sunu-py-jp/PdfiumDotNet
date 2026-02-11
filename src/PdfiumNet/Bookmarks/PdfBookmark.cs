@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using PdfiumNet.Native;
 
 namespace PdfiumNet.Bookmarks;
@@ -23,23 +22,8 @@ public sealed class PdfBookmark
     /// </summary>
     public string Title
     {
-        get
-        {
-            var length = PdfiumNative.FPDFBookmark_GetTitle(_handle, IntPtr.Zero, 0);
-            if (length <= 2)
-                return string.Empty;
-
-            var buffer = Marshal.AllocHGlobal((int)length);
-            try
-            {
-                PdfiumNative.FPDFBookmark_GetTitle(_handle, buffer, length);
-                return Marshal.PtrToStringUni(buffer) ?? string.Empty;
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(buffer);
-            }
-        }
+        get => NativeStringHelper.ReadUtf16((buf, len) =>
+            PdfiumNative.FPDFBookmark_GetTitle(_handle, buf, len));
     }
 
     /// <summary>

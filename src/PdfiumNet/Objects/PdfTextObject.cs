@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using PdfiumNet.Exceptions;
 using PdfiumNet.Native;
 using PdfiumNet.Text;
@@ -45,24 +44,8 @@ public sealed class PdfTextObject : PdfPageObject
     /// <returns>The text content, or an empty string if no text is available.</returns>
     public string GetText(PdfTextPage textPage)
     {
-        // First call: get required buffer size (in bytes, UTF-16LE including null terminator)
-        var size = PdfiumNative.FPDFTextObj_GetText(Handle, textPage.Handle, IntPtr.Zero, 0);
-        if (size <= 2) return string.Empty; // Only null terminator or nothing
-
-        var buffer = Marshal.AllocHGlobal((int)size);
-        try
-        {
-            PdfiumNative.FPDFTextObj_GetText(Handle, textPage.Handle, buffer, size);
-            // size is in bytes; each UTF-16 char is 2 bytes; subtract 1 char for null terminator
-            var charCount = (int)(size / 2) - 1;
-            return charCount > 0
-                ? Marshal.PtrToStringUni(buffer, charCount) ?? string.Empty
-                : string.Empty;
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
+        return NativeStringHelper.ReadUtf16((buf, len) =>
+            PdfiumNative.FPDFTextObj_GetText(Handle, textPage.Handle, buf, len));
     }
 
     /// <summary>

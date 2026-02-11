@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using PdfiumNet.Exceptions;
 using PdfiumNet.Geometry;
 using PdfiumNet.Native;
@@ -46,5 +47,51 @@ public sealed class PdfImageObject : PdfPageObject
     public void SetBounds(float x, float y, float width, float height)
     {
         SetMatrix(new PdfMatrix(width, 0, 0, height, x, y));
+    }
+
+    /// <summary>
+    /// Gets the decoded (uncompressed) image data.
+    /// </summary>
+    public byte[]? GetImageDataDecoded()
+    {
+        var size = PdfiumNative.FPDFImageObj_GetImageDataDecoded(Handle, IntPtr.Zero, 0);
+        if (size == 0)
+            return null;
+
+        var buffer = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            PdfiumNative.FPDFImageObj_GetImageDataDecoded(Handle, buffer, size);
+            var result = new byte[size];
+            Marshal.Copy(buffer, result, 0, (int)size);
+            return result;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Gets the raw (compressed) image data as stored in the PDF.
+    /// </summary>
+    public byte[]? GetImageDataRaw()
+    {
+        var size = PdfiumNative.FPDFImageObj_GetImageDataRaw(Handle, IntPtr.Zero, 0);
+        if (size == 0)
+            return null;
+
+        var buffer = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            PdfiumNative.FPDFImageObj_GetImageDataRaw(Handle, buffer, size);
+            var result = new byte[size];
+            Marshal.Copy(buffer, result, 0, (int)size);
+            return result;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 }

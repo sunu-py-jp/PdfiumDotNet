@@ -1,10 +1,12 @@
 using System.Runtime.InteropServices;
+using PdfiumNet.Attachments;
 using PdfiumNet.Bookmarks;
 using PdfiumNet.Exceptions;
 using PdfiumNet.Forms;
 using PdfiumNet.Geometry;
 using PdfiumNet.IO;
 using PdfiumNet.Native;
+using PdfiumNet.Signatures;
 
 namespace PdfiumNet;
 
@@ -17,6 +19,8 @@ public sealed class PdfDocument : IDisposable
     private readonly PdfPageCollection _pages;
     private PdfMetadata? _metadata;
     private PdfBookmarkCollection? _bookmarks;
+    private PdfAttachmentCollection? _attachments;
+    private PdfSignatureCollection? _signatures;
     private byte[]? _loadedData; // Keep reference to prevent GC during document lifetime
     private bool _disposed;
 
@@ -49,6 +53,16 @@ public sealed class PdfDocument : IDisposable
     /// Gets the collection of bookmarks (outline) in this document.
     /// </summary>
     public PdfBookmarkCollection Bookmarks => _bookmarks ??= new PdfBookmarkCollection(this);
+
+    /// <summary>
+    /// Gets the collection of file attachments in this document.
+    /// </summary>
+    public PdfAttachmentCollection Attachments => _attachments ??= new PdfAttachmentCollection(this);
+
+    /// <summary>
+    /// Gets the collection of digital signatures in this document (read-only).
+    /// </summary>
+    public PdfSignatureCollection Signatures => _signatures ??= new PdfSignatureCollection(this);
 
     /// <summary>
     /// Gets the form type of this document.
@@ -168,6 +182,7 @@ public sealed class PdfDocument : IDisposable
         if (index < 0 || index >= PageCount)
             throw new ArgumentOutOfRangeException(nameof(index));
         PdfiumNative.FPDFPage_Delete(Handle, index);
+        _pages.InvalidateCache();
     }
 
     /// <summary>
@@ -176,7 +191,85 @@ public sealed class PdfDocument : IDisposable
     public bool ImportPages(PdfDocument source, string? pageRange = null, int insertIndex = -1)
     {
         if (insertIndex < 0) insertIndex = PageCount;
-        return PdfiumNative.FPDF_ImportPages(Handle, source.Handle, pageRange, insertIndex);
+        var result = PdfiumNative.FPDF_ImportPages(Handle, source.Handle, pageRange, insertIndex);
+        if (result)
+            _pages.InvalidateCache();
+        return result;
+    }
+
+    /// <summary>
+    /// Merges all pages from another document into this document at the specified position.
+    /// </summary>
+    /// <param name="source">The source document to merge pages from.</param>
+    /// <param name="insertIndex">The position to insert the pages. Defaults to the end of the document.</param>
+    public void MergeFrom(PdfDocument source, int insertIndex = -1)
+    {
+        if (!ImportPages(source, null, insertIndex))
+            throw new PdfiumException("Failed to merge pages from source document.");
+    }
+
+    /// <summary>
+    /// Extracts specified pages into a new document.
+    /// </summary>
+    /// <param name="pageIndices">Zero-based indices of pages to extract.</param>
+    /// <returns>A new document containing the extracted pages. The caller must dispose it.</returns>
+    public PdfDocument ExtractPages(params int[] pageIndices)
+    {
+        if (pageIndices.Length == 0)
+            throw new ArgumentException("At least one page index must be specified.", nameof(pageIndices));
+
+        // PDFium ImportPages uses 1-based page numbers in the range string
+        var pageRange = string.Join(",", pageIndices.Select(i => (i + 1).ToString()));
+
+        var newDoc = Create();
+        try
+        {
+            if (!PdfiumNative.FPDF_ImportPages(newDoc.Handle, Handle, pageRange, 0))
+            {
+                newDoc.Dispose();
+                throw new PdfiumException("Failed to extract pages.");
+            }
+            return newDoc;
+        }
+        catch
+        {
+            newDoc.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets all JavaScript actions in the document.
+    /// Useful for security auditing to detect potentially malicious scripts.
+    /// </summary>
+    public IReadOnlyList<PdfJavaScriptAction> GetJavaScriptActions()
+    {
+        var count = PdfiumNative.FPDFDoc_GetJavaScriptActionCount(Handle);
+        if (count <= 0)
+            return Array.Empty<PdfJavaScriptAction>();
+
+        var actions = new List<PdfJavaScriptAction>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var jsHandle = PdfiumNative.FPDFDoc_GetJavaScriptAction(Handle, i);
+            if (jsHandle == IntPtr.Zero) continue;
+
+            try
+            {
+                var name = NativeStringHelper.ReadUtf16((buf, len) =>
+                    PdfiumNative.FPDFJavaScriptAction_GetName(jsHandle, buf, len));
+                var script = NativeStringHelper.ReadUtf16((buf, len) =>
+                    PdfiumNative.FPDFJavaScriptAction_GetScript(jsHandle, buf, len));
+
+                actions.Add(new PdfJavaScriptAction(name, script));
+            }
+            finally
+            {
+                PdfiumNative.FPDFDoc_CloseJavaScriptAction(jsHandle);
+            }
+        }
+
+        return actions;
     }
 
     /// <summary>

@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using PdfiumNet.Native;
 
 namespace PdfiumNet;
@@ -27,21 +26,7 @@ public sealed class PdfMetadata
     private string GetMetaText(string tag)
     {
         var handle = _document.Handle;
-        // First call to get required buffer size (returns bytes including trailing NUL, UTF-16)
-        var length = PdfiumNative.FPDF_GetMetaText(handle, tag, IntPtr.Zero, 0);
-        if (length <= 2) // 2 bytes = just the NUL terminator in UTF-16
-            return string.Empty;
-
-        var buffer = Marshal.AllocHGlobal((int)length);
-        try
-        {
-            PdfiumNative.FPDF_GetMetaText(handle, tag, buffer, length);
-            // PDFium returns UTF-16LE string; length includes the trailing NUL (2 bytes)
-            return Marshal.PtrToStringUni(buffer) ?? string.Empty;
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
+        return NativeStringHelper.ReadUtf16((buf, len) =>
+            PdfiumNative.FPDF_GetMetaText(handle, tag, buf, len));
     }
 }

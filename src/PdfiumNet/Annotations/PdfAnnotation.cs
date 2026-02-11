@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using PdfiumNet.Drawing;
 using PdfiumNet.Native;
 using PdfiumNet.Native.Types;
@@ -95,20 +94,8 @@ public sealed class PdfAnnotation : IDisposable
     /// </summary>
     public string GetStringValue(string key)
     {
-        var length = PdfiumNative.FPDFAnnot_GetStringValue(Handle, key, IntPtr.Zero, 0);
-        if (length <= 2)
-            return string.Empty;
-
-        var buffer = Marshal.AllocHGlobal((int)length);
-        try
-        {
-            PdfiumNative.FPDFAnnot_GetStringValue(Handle, key, buffer, length);
-            return Marshal.PtrToStringUni(buffer) ?? string.Empty;
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
+        return NativeStringHelper.ReadUtf16((buf, len) =>
+            PdfiumNative.FPDFAnnot_GetStringValue(Handle, key, buf, len));
     }
 
     /// <summary>
