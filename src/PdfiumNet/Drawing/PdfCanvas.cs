@@ -1,3 +1,4 @@
+using System;
 using PdfiumNet.Geometry;
 using PdfiumNet.Objects;
 
@@ -160,6 +161,47 @@ public sealed class PdfCanvas
         imageObj.SetBounds(x, y, width, height);
         Page.InsertObject(imageObj);
         return imageObj;
+    }
+
+    /// <summary>
+    /// Draws a watermark text on the page (rotated, semi-transparent, centered by default).
+    /// </summary>
+    public PdfTextObject DrawWatermark(PdfWatermarkOptions? options = null)
+    {
+        options ??= new PdfWatermarkOptions();
+
+        var pageWidth = Page.Width;
+        var pageHeight = Page.Height;
+
+        var textObj = PdfTextObject.Create(Page.Document, options.FontName, options.FontSize, options.Text);
+        textObj.SetFillColor(options.Color);
+
+        // Build transformation: rotate then translate to center
+        var angleRad = options.RotationDegrees * MathF.PI / 180f;
+        var rotation = PdfMatrix.CreateRotation(angleRad);
+
+        var x = options.X ?? pageWidth / 2f;
+        var y = options.Y ?? pageHeight / 2f;
+        var translation = PdfMatrix.CreateTranslation(x, y);
+
+        var matrix = rotation.Multiply(translation);
+        textObj.Transform(matrix);
+
+        Page.InsertObject(textObj);
+        return textObj;
+    }
+
+    /// <summary>
+    /// Draws a table on the page. When the table exceeds the page height, new pages are
+    /// added automatically and the result contains all pages used.
+    /// </summary>
+    /// <param name="table">The table data and style to render.</param>
+    /// <param name="x">Left edge X coordinate.</param>
+    /// <param name="y">Top edge Y coordinate.</param>
+    /// <param name="maxWidth">Maximum available width. When null, uses page width minus 2*x.</param>
+    public PdfTableResult DrawTable(PdfTable table, float x, float y, float? maxWidth = null)
+    {
+        return table.Render(this, x, y, maxWidth);
     }
 
     /// <summary>

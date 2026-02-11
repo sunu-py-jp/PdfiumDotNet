@@ -15,4 +15,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\PdfiumNet\PdfiumNet.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

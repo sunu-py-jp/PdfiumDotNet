@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+using PdfiumNet.Bookmarks;
 using PdfiumNet.Exceptions;
+using PdfiumNet.Forms;
 using PdfiumNet.Geometry;
 using PdfiumNet.IO;
 using PdfiumNet.Native;
@@ -13,6 +15,8 @@ public sealed class PdfDocument : IDisposable
 {
     private IntPtr _handle;
     private readonly PdfPageCollection _pages;
+    private PdfMetadata? _metadata;
+    private PdfBookmarkCollection? _bookmarks;
     private byte[]? _loadedData; // Keep reference to prevent GC during document lifetime
     private bool _disposed;
 
@@ -35,6 +39,32 @@ public sealed class PdfDocument : IDisposable
     /// Gets the collection of pages in this document.
     /// </summary>
     public PdfPageCollection Pages => _pages;
+
+    /// <summary>
+    /// Gets the document metadata (Title, Author, Subject, etc.).
+    /// </summary>
+    public PdfMetadata Metadata => _metadata ??= new PdfMetadata(this);
+
+    /// <summary>
+    /// Gets the collection of bookmarks (outline) in this document.
+    /// </summary>
+    public PdfBookmarkCollection Bookmarks => _bookmarks ??= new PdfBookmarkCollection(this);
+
+    /// <summary>
+    /// Gets the form type of this document.
+    /// </summary>
+    public PdfFormType FormType => (PdfFormType)PdfiumNative.FPDF_GetFormType(Handle);
+
+    /// <summary>
+    /// Gets whether this document contains forms.
+    /// </summary>
+    public bool HasForms => FormType != PdfFormType.None;
+
+    /// <summary>
+    /// Creates a form info object for reading form fields.
+    /// The caller is responsible for disposing the returned object.
+    /// </summary>
+    public PdfFormInfo GetFormInfo() => new PdfFormInfo(this);
 
     /// <summary>
     /// Gets the number of pages in the document.
