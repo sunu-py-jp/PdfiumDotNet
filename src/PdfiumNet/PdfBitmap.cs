@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using PdfiumNet.Exceptions;
+using PdfiumNet.Export;
 using PdfiumNet.Native;
 
 namespace PdfiumNet;
@@ -78,6 +79,42 @@ public sealed class PdfBitmap : IDisposable
         var data = new byte[size];
         Marshal.Copy(Buffer, data, 0, size);
         return data;
+    }
+
+    /// <summary>
+    /// Saves the bitmap as a PNG image to the specified stream.
+    /// </summary>
+    public void SaveAsPng(Stream stream)
+    {
+        PngEncoder.Encode(stream, Width, Height, Stride, ToArray());
+    }
+
+    /// <summary>
+    /// Saves the bitmap as a BMP image to the specified stream.
+    /// </summary>
+    public void SaveAsBmp(Stream stream)
+    {
+        BmpEncoder.Encode(stream, Width, Height, Stride, ToArray());
+    }
+
+    /// <summary>
+    /// Returns the bitmap encoded as a PNG byte array.
+    /// </summary>
+    public byte[] ToPng()
+    {
+        using var ms = new MemoryStream();
+        SaveAsPng(ms);
+        return ms.ToArray();
+    }
+
+    /// <summary>
+    /// Returns the bitmap encoded as a BMP byte array.
+    /// </summary>
+    public byte[] ToBmp()
+    {
+        using var ms = new MemoryStream();
+        SaveAsBmp(ms);
+        return ms.ToArray();
     }
 
     /// <summary>

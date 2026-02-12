@@ -86,6 +86,26 @@ public sealed class PdfDocument : IDisposable
     public int PageCount => PdfiumNative.FPDF_GetPageCount(Handle);
 
     /// <summary>
+    /// Gets the document permissions flags.
+    /// </summary>
+    public PdfPermissions Permissions => (PdfPermissions)PdfiumNative.FPDF_GetDocPermissions(Handle);
+
+    /// <summary>
+    /// Gets the revision number of the document's security handler.
+    /// Returns -1 if the document is not encrypted.
+    /// </summary>
+    public int SecurityHandlerRevision => PdfiumNative.FPDF_GetSecurityHandlerRevision(Handle);
+
+    /// <summary>
+    /// Gets the label for the specified page (e.g. "i", "ii", "1", "2").
+    /// </summary>
+    public string GetPageLabel(int pageIndex)
+    {
+        return NativeStringHelper.ReadUtf16((buf, len) =>
+            PdfiumNative.FPDF_GetPageLabel(Handle, pageIndex, buf, len));
+    }
+
+    /// <summary>
     /// Gets the PDF file version (e.g. 17 for PDF 1.7).
     /// </summary>
     public int FileVersion

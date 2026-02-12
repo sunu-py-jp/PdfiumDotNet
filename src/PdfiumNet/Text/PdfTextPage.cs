@@ -147,6 +147,56 @@ public sealed class PdfTextPage : IDisposable
     }
 
     /// <summary>
+    /// Gets the bounding rectangles for a range of characters.
+    /// </summary>
+    public IReadOnlyList<PdfRectangle> GetTextRectangles(int startIndex, int count)
+    {
+        var rectCount = PdfiumNative.FPDFText_CountRects(Handle, startIndex, count);
+        if (rectCount <= 0)
+            return Array.Empty<PdfRectangle>();
+
+        var rects = new List<PdfRectangle>(rectCount);
+        for (var i = 0; i < rectCount; i++)
+        {
+            if (PdfiumNative.FPDFText_GetRect(Handle, i, out var left, out var top, out var right, out var bottom))
+                rects.Add(new PdfRectangle((float)left, (float)bottom, (float)right, (float)top));
+        }
+        return rects;
+    }
+
+    /// <summary>
+    /// Searches for text on the page and returns results with bounding rectangles.
+    /// </summary>
+    public IReadOnlyList<TextSearchResult> SearchWithBounds(string text, bool caseSensitive = false, bool wholeWord = false)
+    {
+        uint flags = 0;
+        if (caseSensitive) flags |= 0x0001;
+        if (wholeWord) flags |= 0x0002;
+
+        var results = new List<TextSearchResult>();
+        var searchHandle = PdfiumNative.FPDFText_FindStart(Handle, text, flags, 0);
+        if (searchHandle == IntPtr.Zero)
+            return results;
+
+        try
+        {
+            while (PdfiumNative.FPDFText_FindNext(searchHandle))
+            {
+                var index = PdfiumNative.FPDFText_GetSchResultIndex(searchHandle);
+                var count = PdfiumNative.FPDFText_GetSchCount(searchHandle);
+                var rects = GetTextRectangles(index, count);
+                results.Add(new TextSearchResult { StartIndex = index, Length = count, Rectangles = rects });
+            }
+        }
+        finally
+        {
+            PdfiumNative.FPDFText_FindClose(searchHandle);
+        }
+
+        return results;
+    }
+
+    /// <summary>
     /// Searches for text on the page.
     /// </summary>
     public IReadOnlyList<TextSearchResult> Search(string text, bool caseSensitive = false, bool wholeWord = false)
@@ -175,6 +225,43 @@ public sealed class PdfTextPage : IDisposable
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Extracts text within the specified rectangular region.
+    /// </summary>
+    public string GetTextInRegion(PdfRectangle region)
+    {
+        // First call to get character count
+        var charCount = PdfiumNative.FPDFText_GetBoundedText(Handle,
+            region.Left, region.Top, region.Right, region.Bottom,
+            IntPtr.Zero, 0);
+        if (charCount <= 0)
+            return string.Empty;
+
+        // Second call to get actual text (charCount includes null terminator)
+        var bufferSize = charCount * 2;
+        var buffer = Marshal.AllocHGlobal(bufferSize);
+        try
+        {
+            PdfiumNative.FPDFText_GetBoundedText(Handle,
+                region.Left, region.Top, region.Right, region.Bottom,
+                buffer, charCount);
+            return Marshal.PtrToStringUni(buffer, charCount - 1) ?? string.Empty;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Gets the character index at the specified position.
+    /// Returns -1 if no character is found at the position, -3 if the position is outside the page.
+    /// </summary>
+    public int GetCharIndexAtPosition(float x, float y, float xTolerance = 10f, float yTolerance = 10f)
+    {
+        return PdfiumNative.FPDFText_GetCharIndexAtPos(Handle, x, y, xTolerance, yTolerance);
     }
 
     public void Dispose()

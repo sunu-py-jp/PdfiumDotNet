@@ -46,6 +46,11 @@ public sealed class PdfPage : IDisposable
     public int Index { get; }
 
     /// <summary>
+    /// Gets the label for this page (e.g. "i", "ii", "1", "2").
+    /// </summary>
+    public string Label => _document.GetPageLabel(Index);
+
+    /// <summary>
     /// Gets the width of the page in points.
     /// </summary>
     public float Width => PdfiumNative.FPDF_GetPageWidthF(Handle);
@@ -281,6 +286,24 @@ public sealed class PdfPage : IDisposable
             0, (int)flags);
 
         return bitmap;
+    }
+
+    /// <summary>
+    /// Renders the page to a PNG byte array at the specified DPI.
+    /// </summary>
+    public byte[] RenderToPng(int dpi = 72, RenderFlags flags = RenderFlags.Annotations | RenderFlags.LcdText)
+    {
+        using var bitmap = Render(dpi, flags);
+        return bitmap.ToPng();
+    }
+
+    /// <summary>
+    /// Renders the page to a BMP byte array at the specified DPI.
+    /// </summary>
+    public byte[] RenderToBmp(int dpi = 72, RenderFlags flags = RenderFlags.Annotations | RenderFlags.LcdText)
+    {
+        using var bitmap = Render(dpi, flags);
+        return bitmap.ToBmp();
     }
 
     public void Dispose()

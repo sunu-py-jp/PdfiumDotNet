@@ -51,4 +51,21 @@ public static partial class PdfiumNative
     [LibraryImport(LibraryName, EntryPoint = "FPDFText_GetFontInfo")]
     public static partial uint FPDFText_GetFontInfo(IntPtr textPage, int index,
         IntPtr buffer, uint bufLen, out int flags);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDFText_CountRects")]
+    public static partial int FPDFText_CountRects(IntPtr textPage, int startIndex, int count);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDFText_GetRect")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool FPDFText_GetRect(IntPtr textPage, int rectIndex,
+        out double left, out double top, out double right, out double bottom);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDFText_GetBoundedText")]
+    public static partial int FPDFText_GetBoundedText(IntPtr textPage,
+        double left, double top, double right, double bottom,
+        IntPtr buffer, int buflen);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDFText_GetCharIndexAtPos")]
+    public static partial int FPDFText_GetCharIndexAtPos(IntPtr textPage,
+        double x, double y, double xTolerance, double yTolerance);
 }

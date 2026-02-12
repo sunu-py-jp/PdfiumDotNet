@@ -36,4 +36,13 @@ public static partial class PdfiumNative
     [LibraryImport(LibraryName, EntryPoint = "FPDF_GetFileVersion")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool FPDF_GetFileVersion(IntPtr document, out int fileVersion);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDF_GetDocPermissions")]
+    public static partial uint FPDF_GetDocPermissions(IntPtr document);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDF_GetSecurityHandlerRevision")]
+    public static partial int FPDF_GetSecurityHandlerRevision(IntPtr document);
+
+    [LibraryImport(LibraryName, EntryPoint = "FPDF_GetPageLabel")]
+    public static partial uint FPDF_GetPageLabel(IntPtr document, int pageIndex, IntPtr buffer, uint buflen);
 }
