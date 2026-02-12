@@ -42,6 +42,14 @@ public static class NativeLibraryLoader
                 var fullPath = Path.Combine(assemblyDir, candidate);
                 if (NativeLibrary.TryLoad(fullPath, out handle))
                     return handle;
+
+                // Try runtimes/{rid}/native/ subdirectory
+                foreach (var rid in GetRuntimeIdentifiers())
+                {
+                    var runtimePath = Path.Combine(assemblyDir, "runtimes", rid, "native", candidate);
+                    if (NativeLibrary.TryLoad(runtimePath, out handle))
+                        return handle;
+                }
             }
         }
 
@@ -56,6 +64,25 @@ public static class NativeLibraryLoader
             return new[] { "libpdfium.dylib" };
         if (OperatingSystem.IsLinux())
             return new[] { "libpdfium.so" };
+        return Array.Empty<string>();
+    }
+
+    private static string[] GetRuntimeIdentifiers()
+    {
+        var arch = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.Arm64 => "arm64",
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            _ => "x64"
+        };
+
+        if (OperatingSystem.IsWindows())
+            return new[] { $"win-{arch}" };
+        if (OperatingSystem.IsMacOS())
+            return new[] { $"osx-{arch}" };
+        if (OperatingSystem.IsLinux())
+            return new[] { $"linux-{arch}" };
         return Array.Empty<string>();
     }
 }

@@ -3,4 +3,10 @@
     <PackageId>PdfiumNet.Native</PackageId>
     <Description>Low-level P/Invoke bindings for Google PDFium</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\..\runtimes\**\*"
+          Link="runtimes\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
