@@ -1,30 +1,43 @@
 # PdfiumDotNet
 
-A C# wrapper for [Google PDFium](https://pdfium.googlesource.com/pdfium/) that provides a clean, high-level API for PDF creation, editing, text extraction, and drawing.
+A C# wrapper for [Google PDFium](https://pdfium.googlesource.com/pdfium/) that provides a clean, high-level API for PDF creation, editing, text extraction, rendering, and more.
 
 ## Features
 
-- PDF creation and page management
-- Text drawing with standard/custom fonts
-- Shape drawing (rectangle, circle, ellipse, line, polygon, custom path)
-- Image insertion
-- Text extraction and search
-- Save to file, stream, or byte array
+- **PDF creation & page management** - Create, add, remove, merge, extract pages
+- **Text drawing** with standard/custom fonts
+- **Shape drawing** - rectangle, circle, ellipse, line, polygon, custom path
+- **Image insertion** and extraction
+- **Text extraction & search** - full page or region-based, with bounding rectangles
+- **Annotations** - create, modify, remove (text notes, highlights, etc.)
+- **Bookmarks** - navigate document outline
+- **Form fields** - read form type and field information
+- **Metadata** - read/write title, author, subject, etc.
+- **Attachments** - add and retrieve embedded files
+- **Digital signatures** - enumerate signature fields
+- **Rendering** - render pages to bitmap at any DPI
+- **PNG/BMP export** - save bitmaps or render pages directly to PNG/BMP (no external dependencies)
+- **Document permissions & security** - read permission flags and security handler info
+- **Page labels** - access logical page numbering (e.g. "i", "ii", "1", "2")
+- **Structure tree** - access tagged PDF structure
+- **JavaScript detection** - enumerate JS actions for security auditing
+- **Flatten** - flatten annotations/forms into page content
+- **CropBox/MediaBox** - get/set page boundaries
+- **Watermarks** - draw text watermarks
+- **Table drawing** - draw tables with customizable styles
 
 ## Requirements
 
-- .NET 7.0+
+- .NET 10.0+
 - PDFium native library (`libpdfium.dylib` / `pdfium.dll` / `libpdfium.so`)
 
 ### Getting the native library
 
 ```bash
 # Download from https://github.com/bblanchon/pdfium-binaries/releases
-# Or use the included script:
-pwsh build/download-pdfium-binaries.ps1
 ```
 
-Place the library in `runtimes/{rid}/native/` or next to your application binary.
+Place the library in `runtimes/{rid}/native/` (e.g. `runtimes/osx-arm64/native/libpdfium.dylib`) or next to your application binary.
 
 ## Quick Start
 
@@ -50,58 +63,118 @@ canvas.SetStrokeColor(PdfColor.Blue);
 canvas.SetFillColor(new PdfColor(200, 220, 255));
 canvas.DrawRectangle(72, 650, 200, 60, DrawMode.FillAndStroke);
 
-canvas.SetStrokeColor(PdfColor.Red);
-canvas.DrawCircle(400, 680, 30, DrawMode.Stroke);
-
 page.GenerateContent();
 doc.Save("output.pdf");
 ```
 
-### Open and extract text
+### Extract text
 
 ```csharp
-using var doc = PdfDocument.Open("output.pdf");
+using var doc = PdfDocument.Open("document.pdf");
 string text = doc.Pages[0].ExtractText();
-Console.WriteLine(text);
 ```
 
-### Search text
+### Search text with bounding rectangles
 
 ```csharp
-using var doc = PdfDocument.Open("output.pdf");
+using var doc = PdfDocument.Open("document.pdf");
 using var textPage = doc.Pages[0].GetTextPage();
+
+// Simple search
 var results = textPage.Search("Hello");
-foreach (var r in results)
-    Console.WriteLine($"Found at index {r.StartIndex}");
+
+// Search with bounding rectangles (for highlighting)
+var resultsWithBounds = textPage.SearchWithBounds("Hello");
+foreach (var r in resultsWithBounds)
+{
+    Console.WriteLine($"Found at index {r.StartIndex}, length {r.Length}");
+    foreach (var rect in r.Rectangles)
+        Console.WriteLine($"  Rect: {rect}");
+}
 ```
 
-### Edit an existing PDF
+### Extract text from a region
 
 ```csharp
-using var doc = PdfDocument.Open("output.pdf");
-var canvas = doc.Pages[0].GetCanvas();
-
-// Add a red strikethrough line
-canvas.SetStrokeColor(PdfColor.Red);
-canvas.SetStrokeWidth(2);
-canvas.DrawLine(72, 760, 300, 760);
-
-// Add correction text
-canvas.SetFillColor(PdfColor.Red);
-canvas.DrawText("CORRECTED", 310, 750, "Helvetica", 12);
-
-doc.Pages[0].GenerateContent();
-doc.Save("edited.pdf");
+using var textPage = doc.Pages[0].GetTextPage();
+var region = new PdfRectangle(72, 700, 300, 750);
+string regionText = textPage.GetTextInRegion(region);
 ```
 
-### Insert an image
+### Render to PNG/BMP
 
 ```csharp
-using var bitmap = PdfBitmap.Create(100, 100, hasAlpha: true);
-bitmap.FillRect(0, 0, 100, 100, 0xFFFF0000); // red square
+using var doc = PdfDocument.Open("document.pdf");
+var page = doc.Pages[0];
 
-var canvas = page.GetCanvas();
-canvas.DrawImage(bitmap, 72, 500, 100, 100);
+// Render directly to PNG byte array
+byte[] png = page.RenderToPng(dpi: 150);
+File.WriteAllBytes("page.png", png);
+
+// Or render to BMP
+byte[] bmp = page.RenderToBmp(dpi: 150);
+
+// Or use PdfBitmap for more control
+using var bitmap = page.Render(dpi: 150);
+using var stream = File.Create("page.png");
+bitmap.SaveAsPng(stream);
+```
+
+### Document permissions & page labels
+
+```csharp
+using var doc = PdfDocument.Open("document.pdf");
+
+// Check permissions
+var perms = doc.Permissions;
+Console.WriteLine($"Can print: {perms.HasFlag(PdfPermissions.Print)}");
+Console.WriteLine($"Security handler revision: {doc.SecurityHandlerRevision}");
+
+// Page labels
+for (int i = 0; i < doc.PageCount; i++)
+    Console.WriteLine($"Page {i}: label = \"{doc.GetPageLabel(i)}\"");
+```
+
+### Merge and extract pages
+
+```csharp
+// Merge documents
+using var doc1 = PdfDocument.Open("part1.pdf");
+using var doc2 = PdfDocument.Open("part2.pdf");
+doc1.MergeFrom(doc2);
+doc1.Save("merged.pdf");
+
+// Extract specific pages
+using var doc = PdfDocument.Open("large.pdf");
+using var extracted = doc.ExtractPages(0, 2, 4);
+extracted.Save("selected-pages.pdf");
+```
+
+### Annotations
+
+```csharp
+using var doc = PdfDocument.Open("document.pdf");
+var page = doc.Pages[0];
+
+// Add a text annotation
+var annot = page.Annotations.Add(PdfAnnotationType.Text);
+annot.SetRect(new PdfRectangle(100, 700, 130, 730));
+annot.SetColor(new PdfColor(255, 255, 0)); // Yellow
+
+page.GenerateContent();
+doc.Save("annotated.pdf");
+```
+
+### Attachments
+
+```csharp
+using var doc = PdfDocument.Create();
+doc.AddPage(PdfSize.A4).GenerateContent();
+
+var attachment = doc.Attachments.Add("data.txt");
+attachment.SetFile(System.Text.Encoding.UTF8.GetBytes("Hello!"));
+
+doc.Save("with-attachment.pdf");
 ```
 
 ## Project Structure
@@ -114,6 +187,8 @@ samples/
   PdfiumNet.Samples/  # Usage examples
 tests/
   PdfiumNet.Tests/    # Unit & integration tests
+runtimes/
+  osx-arm64/native/   # Native library (macOS ARM64)
 ```
 
 ## Running Tests
