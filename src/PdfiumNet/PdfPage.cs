@@ -289,6 +289,62 @@ public sealed class PdfPage : IDisposable
     }
 
     /// <summary>
+    /// Renders a rectangular region of the page to a bitmap at the specified DPI.
+    /// The region is specified in PDF coordinate space (points, origin at bottom-left).
+    /// </summary>
+    /// <param name="region">The rectangular region to render, in PDF points.</param>
+    /// <param name="dpi">The resolution in dots per inch.</param>
+    /// <param name="flags">Rendering flags.</param>
+    public PdfBitmap RenderRegion(PdfRectangle region, int dpi = 72, RenderFlags flags = RenderFlags.Annotations | RenderFlags.LcdText)
+    {
+        var scale = dpi / 72.0f;
+
+        // Full page size in pixels
+        var pagePixelWidth = (int)(Width * scale);
+        var pagePixelHeight = (int)(Height * scale);
+
+        // Region size in pixels
+        var regionPixelWidth = (int)(region.Width * scale);
+        var regionPixelHeight = (int)(region.Height * scale);
+
+        if (regionPixelWidth <= 0 || regionPixelHeight <= 0)
+            throw new ArgumentException("Region must have positive width and height.", nameof(region));
+
+        // Convert PDF coordinates (origin bottom-left) to bitmap coordinates (origin top-left)
+        var pixelLeft = (int)(region.Left * scale);
+        var pixelTop = (int)((Height - region.Top) * scale);
+
+        var bitmap = PdfBitmap.Create(regionPixelWidth, regionPixelHeight, true);
+        bitmap.FillRect(0, 0, regionPixelWidth, regionPixelHeight, 0xFFFFFFFF);
+
+        // Offset the page rendering so that the desired region maps to (0,0) on the bitmap
+        PdfiumNative.FPDF_RenderPageBitmap(
+            bitmap.Handle, Handle,
+            -pixelLeft, -pixelTop, pagePixelWidth, pagePixelHeight,
+            0, (int)flags);
+
+        return bitmap;
+    }
+
+    /// <summary>
+    /// Renders a rectangular region of the page to a PNG byte array.
+    /// </summary>
+    public byte[] RenderRegionToPng(PdfRectangle region, int dpi = 72, RenderFlags flags = RenderFlags.Annotations | RenderFlags.LcdText)
+    {
+        using var bitmap = RenderRegion(region, dpi, flags);
+        return bitmap.ToPng();
+    }
+
+    /// <summary>
+    /// Renders a rectangular region of the page to a BMP byte array.
+    /// </summary>
+    public byte[] RenderRegionToBmp(PdfRectangle region, int dpi = 72, RenderFlags flags = RenderFlags.Annotations | RenderFlags.LcdText)
+    {
+        using var bitmap = RenderRegion(region, dpi, flags);
+        return bitmap.ToBmp();
+    }
+
+    /// <summary>
     /// Renders the page to a PNG byte array at the specified DPI.
     /// </summary>
     public byte[] RenderToPng(int dpi = 72, RenderFlags flags = RenderFlags.Annotations | RenderFlags.LcdText)

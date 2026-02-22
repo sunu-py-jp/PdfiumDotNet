@@ -342,6 +342,102 @@ public class Phase2FeatureTests
         _output.WriteLine($"BMP saved: {outputPath} ({bmp.Length} bytes)");
     }
 
+    // --- RenderRegion ---
+
+    [SkippableFact]
+    public void RenderRegion_ProducesSmallerBitmap()
+    {
+        Skip.IfNot(IsPdfiumAvailable(), "PDFium native library not available");
+
+        using var doc = PdfDocument.Create();
+        var page = doc.AddPage(PdfSize.A4);
+        var canvas = page.GetCanvas();
+        canvas.DrawText("Top Left", 72, 780);
+        canvas.DrawText("Bottom Right", 400, 100);
+        page.GenerateContent();
+
+        // Render just the top-left region (200x100 points)
+        var region = new PdfRectangle(50, 750, 250, 800);
+        using var regionBitmap = page.RenderRegion(region, 72);
+
+        // Full page render for comparison
+        using var fullBitmap = page.Render(72);
+
+        // Region bitmap should be smaller than full page
+        Assert.True(regionBitmap.Width < fullBitmap.Width);
+        Assert.True(regionBitmap.Height < fullBitmap.Height);
+
+        // Region bitmap dimensions should match the region size at 72 DPI (1:1 points to pixels)
+        Assert.Equal(200, regionBitmap.Width); // 250 - 50
+        Assert.Equal(50, regionBitmap.Height); // 800 - 750
+
+        _output.WriteLine($"Full: {fullBitmap.Width}x{fullBitmap.Height}, Region: {regionBitmap.Width}x{regionBitmap.Height}");
+    }
+
+    [SkippableFact]
+    public void RenderRegion_HigherDpi_ProducesLargerBitmap()
+    {
+        Skip.IfNot(IsPdfiumAvailable(), "PDFium native library not available");
+
+        using var doc = PdfDocument.Create();
+        var page = doc.AddPage(PdfSize.A4);
+        var canvas = page.GetCanvas();
+        canvas.DrawText("Hello Region", 72, 720);
+        page.GenerateContent();
+
+        var region = new PdfRectangle(50, 700, 250, 750);
+        using var bitmap72 = page.RenderRegion(region, 72);
+        using var bitmap144 = page.RenderRegion(region, 144);
+
+        // 144 DPI should be 2x the dimensions of 72 DPI
+        Assert.Equal(bitmap72.Width * 2, bitmap144.Width);
+        Assert.Equal(bitmap72.Height * 2, bitmap144.Height);
+    }
+
+    [SkippableFact]
+    public void RenderRegionToPng_ProducesValidPng()
+    {
+        Skip.IfNot(IsPdfiumAvailable(), "PDFium native library not available");
+
+        using var doc = PdfDocument.Create();
+        var page = doc.AddPage(PdfSize.A4);
+        var canvas = page.GetCanvas();
+        canvas.DrawText("Region PNG Test", 72, 720);
+        page.GenerateContent();
+
+        var region = new PdfRectangle(50, 700, 300, 750);
+        var png = page.RenderRegionToPng(region, 150);
+
+        Assert.True(png.Length > 8);
+        Assert.Equal(0x89, png[0]);
+        Assert.Equal(0x50, png[1]);
+        Assert.Equal(0x4E, png[2]);
+        Assert.Equal(0x47, png[3]);
+
+        var outputPath = GetOutputPath("RenderRegionToPng_Test.png");
+        File.WriteAllBytes(outputPath, png);
+        _output.WriteLine($"Region PNG saved: {outputPath} ({png.Length} bytes)");
+    }
+
+    [SkippableFact]
+    public void RenderRegionToBmp_ProducesValidBmp()
+    {
+        Skip.IfNot(IsPdfiumAvailable(), "PDFium native library not available");
+
+        using var doc = PdfDocument.Create();
+        var page = doc.AddPage(PdfSize.A4);
+        var canvas = page.GetCanvas();
+        canvas.DrawText("Region BMP Test", 72, 720);
+        page.GenerateContent();
+
+        var region = new PdfRectangle(50, 700, 300, 750);
+        var bmp = page.RenderRegionToBmp(region, 72);
+
+        Assert.True(bmp.Length > 54);
+        Assert.Equal(0x42, bmp[0]);
+        Assert.Equal(0x4D, bmp[1]);
+    }
+
     [SkippableFact]
     public void SaveAsPng_ToFile_CanBeReopened()
     {
