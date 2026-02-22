@@ -9,10 +9,11 @@ A C# wrapper for [Google PDFium](https://pdfium.googlesource.com/pdfium/) that p
 - **Shape drawing** - rectangle, circle, ellipse, line, polygon, custom path
 - **Image insertion** and extraction
 - **Text extraction & search** - full page or region-based, with bounding rectangles
+- **Region rendering** - render a specific rectangular area of a page to bitmap/PNG/BMP
 - **Annotations** - create, modify, remove (text notes, highlights, etc.)
 - **Bookmarks** - navigate document outline
 - **Form fields** - read form type and field information
-- **Metadata** - read/write title, author, subject, etc.
+- **Metadata** - read title, author, subject, keywords, creator, producer, dates
 - **Attachments** - add and retrieve embedded files
 - **Digital signatures** - enumerate signature fields
 - **Rendering** - render pages to bitmap at any DPI
@@ -77,7 +78,6 @@ string text = doc.Pages[0].ExtractText();
 ### Search text with bounding rectangles
 
 ```csharp
-using var doc = PdfDocument.Open("document.pdf");
 using var textPage = doc.Pages[0].GetTextPage();
 
 // Simple search
@@ -104,15 +104,16 @@ string regionText = textPage.GetTextInRegion(region);
 ### Render to PNG/BMP
 
 ```csharp
-using var doc = PdfDocument.Open("document.pdf");
 var page = doc.Pages[0];
 
-// Render directly to PNG byte array
+// Render full page to PNG
 byte[] png = page.RenderToPng(dpi: 150);
 File.WriteAllBytes("page.png", png);
 
-// Or render to BMP
-byte[] bmp = page.RenderToBmp(dpi: 150);
+// Render a specific region only
+var region = new PdfRectangle(50, 530, 480, 770);
+byte[] regionPng = page.RenderRegionToPng(region, dpi: 150);
+File.WriteAllBytes("region.png", regionPng);
 
 // Or use PdfBitmap for more control
 using var bitmap = page.Render(dpi: 150);
@@ -120,15 +121,25 @@ using var stream = File.Create("page.png");
 bitmap.SaveAsPng(stream);
 ```
 
-### Document permissions & page labels
+### Document info & metadata
 
 ```csharp
 using var doc = PdfDocument.Open("document.pdf");
 
-// Check permissions
-var perms = doc.Permissions;
-Console.WriteLine($"Can print: {perms.HasFlag(PdfPermissions.Print)}");
-Console.WriteLine($"Security handler revision: {doc.SecurityHandlerRevision}");
+// Page info
+Console.WriteLine($"Pages: {doc.PageCount}");
+Console.WriteLine($"Page 1: {doc.Pages[0].Width} x {doc.Pages[0].Height} pt");
+
+// Metadata
+var meta = doc.Metadata;
+Console.WriteLine($"Title: {meta.Title}");
+Console.WriteLine($"Author: {meta.Author}");
+Console.WriteLine($"Producer: {meta.Producer}");
+Console.WriteLine($"Created: {meta.CreationDate}");
+
+// Permissions & security
+Console.WriteLine($"Permissions: {doc.Permissions}");
+Console.WriteLine($"Security revision: {doc.SecurityHandlerRevision}");
 
 // Page labels
 for (int i = 0; i < doc.PageCount; i++)
@@ -150,31 +161,31 @@ using var extracted = doc.ExtractPages(0, 2, 4);
 extracted.Save("selected-pages.pdf");
 ```
 
-### Annotations
-
-```csharp
-using var doc = PdfDocument.Open("document.pdf");
-var page = doc.Pages[0];
-
-// Add a text annotation
-var annot = page.Annotations.Add(PdfAnnotationType.Text);
-annot.SetRect(new PdfRectangle(100, 700, 130, 730));
-annot.SetColor(new PdfColor(255, 255, 0)); // Yellow
-
-page.GenerateContent();
-doc.Save("annotated.pdf");
-```
-
 ### Attachments
 
 ```csharp
+// Add
 using var doc = PdfDocument.Create();
 doc.AddPage(PdfSize.A4).GenerateContent();
-
-var attachment = doc.Attachments.Add("data.txt");
-attachment.SetFile(System.Text.Encoding.UTF8.GetBytes("Hello!"));
-
+var att = doc.Attachments.Add("data.txt");
+att.SetFile(Encoding.UTF8.GetBytes("Hello!"));
 doc.Save("with-attachment.pdf");
+
+// Read back
+using var doc2 = PdfDocument.Open("with-attachment.pdf");
+var content = Encoding.UTF8.GetString(doc2.Attachments[0].GetFile()!);
+```
+
+### Security checks
+
+```csharp
+// JavaScript detection
+var jsActions = doc.GetJavaScriptActions();
+foreach (var action in jsActions)
+    Console.WriteLine($"JS: {action.Name} -> {action.Script}");
+
+// Digital signatures
+Console.WriteLine($"Signatures: {doc.Signatures.Count}");
 ```
 
 ## Project Structure
@@ -184,16 +195,20 @@ src/
   PdfiumNet/          # High-level API
   PdfiumNet.Native/   # P/Invoke bindings
 samples/
-  PdfiumNet.Samples/  # Usage examples
+  PdfiumNet.Samples/  # Usage examples (run with: dotnet run --project samples/PdfiumNet.Samples)
 tests/
   PdfiumNet.Tests/    # Unit & integration tests
 runtimes/
   osx-arm64/native/   # Native library (macOS ARM64)
 ```
 
-## Running Tests
+## Running
 
 ```bash
+# Run samples
+dotnet run --project samples/PdfiumNet.Samples
+
+# Run tests
 dotnet test
 ```
 
